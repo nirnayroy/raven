@@ -1,0 +1,111 @@
+name: Build and test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout tree
+        uses: actions/checkout@v4
+
+      - name: Set-up OCaml
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: 5
+
+      - name: Install system dependencies (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libev-dev libcurl4-gnutls-dev libcairo2-dev pkg-config libsdl2-dev libblas-dev liblapack-dev
+
+      - name: Install system dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install libev curl cairo pkg-config sdl2
+
+      - name: Install OCaml dependencies
+        run: opam install . --deps-only --with-test
+
+      - name: Build and test nx
+        run: |
+          echo "::group::nx"
+          opam exec -- dune build nx
+          opam exec -- dune build @nx/runtest
+          echo "::endgroup::"
+
+      - name: Build and test nx-datasets
+        run: |
+          echo "::group::nx-datasets"
+          opam exec -- dune build nx-datasets
+          opam exec -- dune build @nx-datasets/runtest
+          echo "::endgroup::"
+
+      - name: Build and test saga
+        run: |
+          echo "::group::saga"
+          opam exec -- dune build saga
+          opam exec -- dune build @saga/runtest
+          echo "::endgroup::"
+
+      - name: Build and test talon
+        run: |
+          echo "::group::talon"
+          opam exec -- dune build talon
+          opam exec -- dune build @talon/runtest
+          echo "::endgroup::"
+
+      - name: Build and test rune
+        run: |
+          echo "::group::rune"
+          opam exec -- dune build rune
+          opam exec -- dune build @rune/runtest
+          echo "::endgroup::"
+
+      - name: Build and test kaun
+        run: |
+          echo "::group::kaun"
+          opam exec -- dune build kaun
+          opam exec -- dune build @kaun/runtest
+          echo "::endgroup::"
+
+      - name: Build and test fehu
+        run: |
+          echo "::group::fehu"
+          opam exec -- dune build fehu
+          opam exec -- dune build @fehu/runtest
+          echo "::endgroup::"
+
+      - name: Build and test sowilo
+        run: |
+          echo "::group::sowilo"
+          opam exec -- dune build sowilo
+          opam exec -- dune build @sowilo/runtest
+          echo "::endgroup::"
+
+      - name: Build and test hugin
+        run: |
+          echo "::group::hugin"
+          opam exec -- dune build hugin
+          opam exec -- dune build @hugin/runtest
+          echo "::endgroup::"
+
+      - name: Build and test quill
+        run: |
+          echo "::group::quill"
+          opam exec -- dune build quill
+          opam exec -- dune build @quill/runtest
+          echo "::endgroup::"

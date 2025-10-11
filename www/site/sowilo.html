@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>sowilo - Computer vision for OCaml | raven</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="main-content">
+    <nav class="sowilo-nav nav-breadcrumb">
+      <a href="/">raven</a> / sowilo <span class="color-indigo rune-symbol">ᛋ</span>
+      [ <a href="/docs/sowilo/">docs</a> |
+      <a href="https://github.com/raven-ml/raven/tree/main/sowilo">source</a> ]
+    </nav>
+
+    <div class="sowilo-hero hero">
+      <h1>sowilo <span style="font-size: 48px; margin-left: -20px; opacity: 0.6;" class="color-indigo">ᛋ</span></h1>
+      <p class="tagline">OpenCV's algorithms. torchvision's autodiff. OCaml's reliability.</p>
+    </div>
+
+    <hr>
+
+    <h2>why sowilo?</h2>
+
+    <div class="feature-grid">
+      <div>
+        <h3 class="color-indigo">differentiable vision</h3>
+        <p>Every operation supports automatic differentiation. Train neural networks with classical CV in the loop.</p>
+      </div>
+      <div>
+        <h3 class="color-indigo">pure functional</h3>
+        <p>No global state, no side effects. Image processing operations that compose like functions should.</p>
+      </div>
+      <div>
+        <h3 class="color-indigo">type-safe images</h3>
+        <p>Images are just tensors with known shapes. The compiler catches dimension mismatches.</p>
+      </div>
+      <div>
+        <h3 class="color-indigo">jit ready</h3>
+        <p>Built on Rune's tensor operations. When JIT lands, your filters compile to GPU kernels automatically.</p>
+      </div>
+    </div>
+
+    <hr>
+
+    <h2>show me the code</h2>
+
+    <div class="code-compare">
+      <div>
+        <h4>OpenCV</h4>
+        <pre><span class="keyword">import</span> <span class="type">cv2</span>
+<span class="keyword">import</span> <span class="type">numpy</span> <span class="keyword">as</span> <span class="type">np</span>
+
+<span class="comment"># Load and process</span>
+<span class="keyword">img</span> <span class="operator">=</span> <span class="type">cv2</span>.<span class="function">imread</span>(<span class="string">'photo.jpg'</span>)
+<span class="keyword">gray</span> <span class="operator">=</span> <span class="type">cv2</span>.<span class="function">cvtColor</span>(<span class="keyword">img</span>, <span class="type">cv2</span>.<span class="keyword">COLOR_BGR2GRAY</span>)
+<span class="keyword">blurred</span> <span class="operator">=</span> <span class="type">cv2</span>.<span class="function">GaussianBlur</span>(<span class="keyword">gray</span>, (<span class="number">5</span>, <span class="number">5</span>), <span class="number">1.0</span>)
+<span class="keyword">edges</span> <span class="operator">=</span> <span class="type">cv2</span>.<span class="function">Canny</span>(<span class="keyword">blurred</span>, <span class="number">100</span>, <span class="number">200</span>)
+
+<span class="comment"># Not differentiable!</span></pre>
+      </div>
+      <div>
+        <h4>SOWILO</h4>
+        <pre><span class="keyword">open</span> <span class="type">Sowilo</span>
+
+<span class="comment">(* Load and process *)</span>
+<span class="keyword">let</span> <span class="keyword">img</span> <span class="operator">=</span> <span class="type">Nx_io</span>.<span class="function">load_image</span> <span class="string">"photo.jpg"</span> <span class="operator">|></span> <span class="type">Rune</span>.<span class="function">of_bigarray</span>
+<span class="keyword">let</span> <span class="keyword">processed</span> <span class="operator">=</span> 
+  <span class="keyword">img</span>
+  <span class="operator">|></span> <span class="function">to_grayscale</span>
+  <span class="operator">|></span> <span class="function">gaussian_blur</span> <span class="operator">~</span><span class="keyword">ksize</span><span class="operator">:</span><span class="number">5</span> <span class="operator">~</span><span class="keyword">sigma</span><span class="operator">:</span><span class="number">1.0</span>
+  <span class="operator">|></span> <span class="function">canny</span> <span class="operator">~</span><span class="keyword">low</span><span class="operator">:</span><span class="number">100.</span> <span class="operator">~</span><span class="keyword">high</span><span class="operator">:</span><span class="number">200.</span>
+
+<span class="comment">(* Fully differentiable! *)</span></pre>
+      </div>
+    </div>
+
+    <hr>
+
+    <h2>image processing operations</h2>
+
+    <pre><span class="comment">(* Filters *)</span>
+<span class="function">gaussian_blur</span> <span class="keyword">img</span> <span class="operator">~</span><span class="keyword">ksize</span><span class="operator">:</span><span class="number">5</span> <span class="operator">~</span><span class="keyword">sigma</span><span class="operator">:</span><span class="number">1.0</span>
+<span class="function">median_blur</span> <span class="keyword">img</span> <span class="operator">~</span><span class="keyword">ksize</span><span class="operator">:</span><span class="number">3</span>
+<span class="function">box_filter</span> <span class="keyword">img</span> <span class="operator">~</span><span class="keyword">ksize</span><span class="operator">:</span><span class="number">3</span>
+
+<span class="comment">(* Edge detection *)</span>
+<span class="keyword">let</span> <span class="keyword">grad_x</span>, <span class="keyword">grad_y</span> <span class="operator">=</span> <span class="function">sobel</span> <span class="keyword">img</span> <span class="operator">~</span><span class="keyword">dx</span><span class="operator">:</span><span class="number">1</span> <span class="operator">~</span><span class="keyword">dy</span><span class="operator">:</span><span class="number">0</span> <span class="operator">~</span><span class="keyword">ksize</span><span class="operator">:</span><span class="number">3</span>
+<span class="keyword">let</span> <span class="keyword">edges</span> <span class="operator">=</span> <span class="function">canny</span> <span class="keyword">img</span> <span class="operator">~</span><span class="keyword">low</span><span class="operator">:</span><span class="number">50.</span> <span class="operator">~</span><span class="keyword">high</span><span class="operator">:</span><span class="number">150.</span>
+
+<span class="comment">(* Morphology *)</span>
+<span class="keyword">let</span> <span class="keyword">kernel</span> <span class="operator">=</span> <span class="function">get_structuring_element</span> <span class="type">Rect</span> <span class="operator">~</span><span class="keyword">ksize</span><span class="operator">:</span><span class="number">3</span>
+<span class="keyword">let</span> <span class="keyword">eroded</span> <span class="operator">=</span> <span class="function">erode</span> <span class="keyword">img</span> <span class="keyword">kernel</span>
+<span class="keyword">let</span> <span class="keyword">dilated</span> <span class="operator">=</span> <span class="function">dilate</span> <span class="keyword">img</span> <span class="keyword">kernel</span>
+
+<span class="comment">(* Thresholding *)</span>
+<span class="function">threshold</span> <span class="keyword">img</span> <span class="operator">~</span><span class="keyword">thresh</span><span class="operator">:</span><span class="number">128.</span> <span class="operator">~</span><span class="keyword">maxval</span><span class="operator">:</span><span class="number">255.</span> <span class="operator">~</span><span class="keyword">typ</span><span class="operator">:</span><span class="type">Binary</span></pre>
+
+    <hr>
+
+    <h2>differentiable augmentations</h2>
+
+    <p>Train neural networks with classical CV operations in the forward pass:</p>
+
+    <pre><span class="comment">(* Augmentation pipeline *)</span>
+<span class="keyword">let</span> <span class="keyword">augment</span> <span class="keyword">img</span> <span class="operator">=</span>
+  <span class="keyword">img</span>
+  <span class="operator">|></span> <span class="function">random_crop</span> <span class="operator">~</span><span class="keyword">size</span><span class="operator">:</span>(<span class="number">224</span>, <span class="number">224</span>)
+  <span class="operator">|></span> <span class="function">random_flip</span> <span class="operator">~</span><span class="keyword">p</span><span class="operator">:</span><span class="number">0.5</span>
+  <span class="operator">|></span> <span class="function">adjust_brightness</span> <span class="operator">~</span><span class="keyword">factor</span><span class="operator">:</span>(<span class="function">random</span> <span class="number">0.8</span> <span class="number">1.2</span>)
+  <span class="operator">|></span> <span class="function">gaussian_blur</span> <span class="operator">~</span><span class="keyword">ksize</span><span class="operator">:</span><span class="number">3</span> <span class="operator">~</span><span class="keyword">sigma</span><span class="operator">:</span>(<span class="function">random</span> <span class="number">0.</span> <span class="number">1.</span>)
+
+<span class="comment">(* Use in training - gradients flow through! *)</span>
+<span class="keyword">let</span> <span class="keyword">loss</span> <span class="keyword">model</span> <span class="keyword">img</span> <span class="keyword">label</span> <span class="operator">=</span>
+  <span class="keyword">let</span> <span class="keyword">augmented</span> <span class="operator">=</span> <span class="function">augment</span> <span class="keyword">img</span> <span class="keyword">in</span>
+  <span class="keyword">let</span> <span class="keyword">features</span> <span class="operator">=</span> <span class="function">extract_features</span> <span class="keyword">augmented</span> <span class="keyword">in</span>
+  <span class="keyword">let</span> <span class="keyword">pred</span> <span class="operator">=</span> <span class="type">Model</span>.<span class="function">forward</span> <span class="keyword">model</span> <span class="keyword">features</span> <span class="keyword">in</span>
+  <span class="function">cross_entropy</span> <span class="keyword">pred</span> <span class="keyword">label</span></pre>
+
+    <hr>
+
+    <h2>what's implemented</h2>
+
+    <div class="feature-grid">
+      <div>
+        <h3 class="color-indigo">core operations</h3>
+        <ul style="list-style: none; padding: 0;">
+          <li>✓ Color space conversions</li>
+          <li>✓ Gaussian, median, box filters</li>
+          <li>✓ Sobel gradients, Canny edges</li>
+          <li>✓ Morphological operations</li>
+          <li>✓ Thresholding functions</li>
+          <li>✓ Image resizing (nearest, bilinear)</li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="color-indigo">coming soon</h3>
+        <ul style="list-style: none; padding: 0;">
+          <li>⏳ Feature detection (SIFT, ORB)</li>
+          <li>⏳ Optical flow</li>
+          <li>⏳ Semantic segmentation ops</li>
+          <li>⏳ Video processing</li>
+          <li>⏳ 3D vision primitives</li>
+        </ul>
+      </div>
+    </div>
+
+    <hr>
+
+    <h2>design philosophy</h2>
+
+    <p><b>Images are tensors.</b> No special image type - just 3D arrays with shape [H; W; C]. This means any tensor operation works on images.</p>
+
+    <p><b>Everything differentiates.</b> Unlike traditional CV libraries, every operation in sowilo can be differentiated. This enables new techniques like learnable image processing.</p>
+
+    <p><b>Functional composition.</b> Operations are pure functions that compose naturally. No global state, no side effects.</p>
+
+    <hr>
+
+    <h2>get started</h2>
+
+    <p>Sowilo isn't released yet. For now, check out the <a href="/docs/sowilo/">documentation</a> to learn more.</p>
+
+    <p>When it's ready:</p>
+
+    <pre>
+<span class="comment"># Install</span>
+<span class="function">opam</span> install sowilo
+
+<span class="comment"># Try it</span>
+<span class="keyword">open</span> <span class="type">Sowilo</span>
+
+<span class="comment">(* Edge detection example *)</span>
+<span class="keyword">let</span> () <span class="operator">=</span>
+  <span class="keyword">let</span> <span class="keyword">img</span> <span class="operator">=</span> <span class="type">Nx_io</span>.<span class="function">load_image</span> <span class="string">"input.jpg"</span> <span class="keyword">in</span>
+  <span class="keyword">let</span> <span class="keyword">edges</span> <span class="operator">=</span> 
+    <span class="type">Rune</span>.<span class="function">of_bigarray</span> (<span class="type">Nx</span>.<span class="function">to_bigarray</span> <span class="keyword">img</span>)
+    <span class="operator">|></span> <span class="function">to_grayscale</span>
+    <span class="operator">|></span> <span class="function">canny</span> <span class="operator">~</span><span class="keyword">low</span><span class="operator">:</span><span class="number">50.</span> <span class="operator">~</span><span class="keyword">high</span><span class="operator">:</span><span class="number">150.</span>
+    <span class="operator">|></span> <span class="type">Rune</span>.<span class="function">to_bigarray</span>
+    <span class="operator">|></span> <span class="type">Nx</span>.<span class="function">of_bigarray</span>
+  <span class="keyword">in</span>
+  <span class="type">Nx_io</span>.<span class="function">save_image</span> <span class="keyword">edges</span> <span class="string">"edges.png"</span>
+    </pre>
+  </main>
+</body>
+</html>

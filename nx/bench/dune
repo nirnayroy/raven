@@ -1,0 +1,4 @@
+(library
+ (name bench_nx)
+ (modules bench_nx)
+ (libraries nx_core ubench str))

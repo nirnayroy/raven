@@ -1,0 +1,3 @@
+(executables
+ (names gpt2 generate compare_with_python)
+ (libraries rune kaun kaun.models saga))

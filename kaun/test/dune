@@ -1,0 +1,18 @@
+(tests
+ (names
+  test_checkpoint
+  test_ptree
+  test_dataset
+  test_metrics
+  test_optimizer
+  test_gradients_vs_jax)
+ (package kaun)
+ (libraries
+  rune
+  nx
+  nx.io
+  kaun
+  kaun.huggingface
+  kaun.models
+  bigarray_ext
+  alcotest))

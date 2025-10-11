@@ -1,0 +1,3 @@
+(executables
+ (names xor)
+ (libraries rune kaun unix))

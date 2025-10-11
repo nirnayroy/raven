@@ -1,0 +1,14 @@
+(tests
+ (names
+  test_tokenization
+  test_vocab
+  test_encoding
+  test_unicode
+  test_errors
+  test_bpe
+  test_wordpiece
+  test_ngram
+  test_gpt2_tokenizer
+  test_pretokenizers)
+ (package saga)
+ (libraries saga saga.tokenizers saga.models nx alcotest unix))

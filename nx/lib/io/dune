@@ -1,0 +1,13 @@
+(library
+ (name nx_io)
+ (public_name nx.io)
+ (libraries
+  bigarray_ext
+  nx
+  nx_core
+  safetensors
+  unix
+  zip
+  npy
+  stb_image
+  stb_image_write))

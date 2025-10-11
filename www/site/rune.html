@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>rune - Automatic differentiation for OCaml | raven</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="main-content">
+    <nav class="rune-nav nav-breadcrumb">
+      <a href="/">raven</a> / rune
+      [ <a href="/docs/rune/">docs</a> |
+      <a href="https://github.com/raven-ml/raven/tree/main/rune">source</a> ]
+    </nav>
+
+    <div class="rune-hero hero">
+      <h1>rune</h1>
+      <p class="tagline">JAX's transformations. OCaml's guarantees. Differentiable everything.</p>
+      <span style="font-size: 36px; opacity: 0.2;" class="color-orange">ᚠ ᚢ ᚦ ᚨ ᚱ ᚲ</span>
+    </div>
+
+    <hr>
+
+    <h2>why rune?</h2>
+
+    <div class="feature-grid">
+      <div>
+        <h3 class="color-orange">composable transformations</h3>
+        <p>grad, jit, vmap - they compose like functions should. Build complex ML systems from simple parts.</p>
+      </div>
+      <div>
+        <h3 class="color-orange">effect-based autodiff</h3>
+        <p>OCaml 5's effects make automatic differentiation elegant. No tape, no graph - just functions.</p>
+      </div>
+      <div>
+        <h3 class="color-orange">multi-device support</h3>
+        <p>Same code runs on CPU or Metal. Device placement is explicit and type-safe.</p>
+      </div>
+      <div>
+        <h3 class="color-orange">type-safe gradients</h3>
+        <p>Shape errors at compile time. Device mismatches impossible. Your gradients always match your parameters.</p>
+      </div>
+    </div>
+
+    <hr>
+
+    <h2>show me the code</h2>
+
+    <div class="code-compare">
+      <div>
+        <h4>JAX</h4>
+        <pre><span class="keyword">import</span> <span class="type">jax</span>
+<span class="keyword">import</span> <span class="type">jax.numpy</span> <span class="keyword">as</span> <span class="type">jnp</span>
+<span class="keyword">from</span> <span class="type">jax</span> <span class="keyword">import</span> <span class="function">grad</span>, <span class="function">jit</span>
+
+<span class="comment"># Define function</span>
+<span class="keyword">def</span> <span class="function">f</span>(<span class="keyword">x</span>):
+    <span class="keyword">return</span> <span class="function">jnp.sum</span>(<span class="keyword">x</span> ** <span class="number">2</span>)
+
+<span class="comment"># Transform it</span>
+<span class="keyword">grad_f</span> <span class="operator">=</span> <span class="function">grad</span>(<span class="keyword">f</span>)
+<span class="keyword">fast_grad_f</span> <span class="operator">=</span> <span class="function">jit</span>(<span class="keyword">grad_f</span>)</pre>
+      </div>
+      <div>
+        <h4>RUNE</h4>
+        <pre><span class="keyword">open</span> <span class="type">Rune</span>
+
+<span class="comment">(* Define function *)</span>
+<span class="keyword">let</span> <span class="keyword">f</span> <span class="keyword">x</span> <span class="operator">=</span> 
+  <span class="function">sum</span> (<span class="function">mul</span> <span class="keyword">x</span> <span class="keyword">x</span>)
+
+<span class="comment">(* Transform it *)</span>
+<span class="keyword">let</span> <span class="keyword">grad_f</span> <span class="operator">=</span> <span class="function">grad</span> <span class="keyword">f</span>
+<span class="keyword">let</span> <span class="keyword">fast_grad_f</span> <span class="operator">=</span> <span class="function">jit</span> <span class="keyword">grad_f</span></pre>
+      </div>
+    </div>
+
+    <hr>
+
+    <h2>automatic differentiation</h2>
+
+    <p>Rune uses OCaml's effect system to implement autodiff. Write normal functions, get derivatives for free:</p>
+
+    <pre><span class="comment">(* Any function works *)</span>
+<span class="keyword">let</span> <span class="keyword">my_function</span> <span class="keyword">x</span> <span class="operator">=</span>
+  <span class="keyword">let</span> <span class="keyword">y</span> <span class="operator">=</span> <span class="function">sin</span> <span class="keyword">x</span> <span class="keyword">in</span>
+  <span class="keyword">let</span> <span class="keyword">z</span> <span class="operator">=</span> <span class="function">mul</span> <span class="keyword">x</span> <span class="keyword">y</span> <span class="keyword">in</span>
+  <span class="function">sum</span> <span class="keyword">z</span>
+
+<span class="comment">(* Get gradient function *)</span>
+<span class="keyword">let</span> <span class="keyword">df_dx</span> <span class="operator">=</span> <span class="function">grad</span> <span class="keyword">my_function</span>
+
+<span class="comment">(* Compute value and gradient together *)</span>
+<span class="keyword">let</span> <span class="keyword">value</span>, <span class="keyword">gradient</span> <span class="operator">=</span> <span class="function">value_and_grad</span> <span class="keyword">my_function</span> <span class="keyword">x</span></pre>
+
+    <hr>
+
+    <h2>device placement</h2>
+
+    <pre><span class="comment">(* CPU computation *)</span>
+<span class="keyword">let</span> <span class="keyword">x</span> <span class="operator">=</span> <span class="function">rand</span> <span class="keyword">cpu</span> <span class="type">Float32</span> [<span class="operator">|</span><span class="number">100</span><span class="operator">|</span>]
+
+<span class="comment">(* Metal GPU (macOS) *)</span>
+<span class="keyword">let</span> <span class="keyword">gpu</span> <span class="operator">=</span> <span class="function">metal</span> () <span class="keyword">in</span>
+<span class="keyword">let</span> <span class="keyword">y</span> <span class="operator">=</span> <span class="function">rand</span> <span class="keyword">gpu</span> <span class="type">Float32</span> [<span class="operator">|</span><span class="number">100</span><span class="operator">|</span>]
+
+<span class="comment">(* Operations run on tensor's device *)</span>
+<span class="keyword">let</span> <span class="keyword">z</span> <span class="operator">=</span> <span class="function">add</span> <span class="keyword">y</span> <span class="keyword">y</span>  <span class="comment">(* runs on GPU *)</span></pre>
+
+    <hr>
+
+    <h2>neural network example</h2>
+
+    <pre><span class="comment">(* Simple two-layer network *)</span>
+<span class="keyword">let</span> <span class="keyword">mlp</span> <span class="keyword">w1</span> <span class="keyword">b1</span> <span class="keyword">w2</span> <span class="keyword">b2</span> <span class="keyword">x</span> <span class="operator">=</span>
+  <span class="keyword">let</span> <span class="keyword">h</span> <span class="operator">=</span> <span class="function">add</span> (<span class="function">matmul</span> <span class="keyword">x</span> <span class="keyword">w1</span>) <span class="keyword">b1</span> <span class="keyword">in</span>
+  <span class="keyword">let</span> <span class="keyword">h</span> <span class="operator">=</span> <span class="function">maximum</span> <span class="keyword">h</span> (<span class="function">zeros_like</span> <span class="keyword">h</span>) <span class="keyword">in</span>  <span class="comment">(* ReLU *)</span>
+  <span class="function">add</span> (<span class="function">matmul</span> <span class="keyword">h</span> <span class="keyword">w2</span>) <span class="keyword">b2</span>
+
+<span class="comment">(* Loss function *)</span>
+<span class="keyword">let</span> <span class="keyword">loss</span> <span class="keyword">params</span> <span class="keyword">x</span> <span class="keyword">y</span> <span class="operator">=</span>
+  <span class="keyword">let</span> [<span class="keyword">w1</span>; <span class="keyword">b1</span>; <span class="keyword">w2</span>; <span class="keyword">b2</span>] <span class="operator">=</span> <span class="keyword">params</span> <span class="keyword">in</span>
+  <span class="keyword">let</span> <span class="keyword">pred</span> <span class="operator">=</span> <span class="function">mlp</span> <span class="keyword">w1</span> <span class="keyword">b1</span> <span class="keyword">w2</span> <span class="keyword">b2</span> <span class="keyword">x</span> <span class="keyword">in</span>
+  <span class="function">mean</span> (<span class="function">mul</span> (<span class="function">sub</span> <span class="keyword">pred</span> <span class="keyword">y</span>) (<span class="function">sub</span> <span class="keyword">pred</span> <span class="keyword">y</span>))
+
+<span class="comment">(* Get gradients for all parameters *)</span>
+<span class="keyword">let</span> <span class="keyword">grad_loss</span> <span class="operator">=</span> <span class="function">grads</span> <span class="keyword">loss</span>
+
+<span class="comment">(* Training step *)</span>
+<span class="keyword">let</span> <span class="keyword">update</span> <span class="keyword">params</span> <span class="keyword">x</span> <span class="keyword">y</span> <span class="keyword">lr</span> <span class="operator">=</span>
+  <span class="keyword">let</span> <span class="keyword">grads</span> <span class="operator">=</span> <span class="keyword">grad_loss</span> <span class="keyword">params</span> <span class="keyword">x</span> <span class="keyword">y</span> <span class="keyword">in</span>
+  <span class="type">List</span>.<span class="function">map2</span> 
+    (<span class="keyword">fun</span> <span class="keyword">p</span> <span class="keyword">g</span> <span class="operator">-></span> <span class="function">sub</span> <span class="keyword">p</span> (<span class="function">mul</span> (<span class="function">scalar</span> <span class="keyword">cpu</span> <span class="type">Float32</span> <span class="keyword">lr</span>) <span class="keyword">g</span>))
+    <span class="keyword">params</span> <span class="keyword">grads</span></pre>
+
+    <hr>
+
+    <h2>what's coming</h2>
+
+    <p>Rune works today for automatic differentiation. Post-v1, we're adding:</p>
+
+    <ul>
+      <li><b>JIT to LLVM/Metal/CUDA</b> - Real compilation, not just tracing</li>
+      <li><b>vmap</b> - Automatic vectorization over batch dimensions</li>
+      <li><b>Forward-mode AD</b> - For Jacobian-vector products</li>
+      <li><b>Higher-order derivatives</b> - Hessians and beyond</li>
+    </ul>
+
+    <hr>
+
+    <h2>ecosystem</h2>
+
+    <div class="feature-grid">
+      <div>
+        <h3 class="color-orange">kaun - neural networks</h3>
+        <p>High-level neural network library built on Rune. Layers, optimizers, and training loops that just work.</p>
+        <p><a href="/kaun/" class="color-red">Learn more →</a></p>
+      </div>
+      <div>
+        <h3 class="color-orange">sowilo - computer vision</h3>
+        <p>Differentiable image processing. Every operation supports autodiff.</p>
+        <p><a href="/sowilo/" class="color-indigo">Learn more →</a></p>
+      </div>
+    </div>
+
+    <hr>
+
+    <h2>get started</h2>
+
+    <p>Rune isn't released yet. For now, check out the <a href="/docs/rune/">documentation</a> to learn more.</p>
+
+    <p>When it's ready:</p>
+
+    <pre>
+<span class="comment"># Install</span>
+<span class="function">opam</span> install rune
+
+<span class="comment"># Try it</span>
+<span class="keyword">open</span> <span class="type">Rune</span>
+
+<span class="keyword">let</span> () <span class="operator">=</span> 
+  <span class="comment">(* Define a function *)</span>
+  <span class="keyword">let</span> <span class="keyword">f</span> <span class="keyword">x</span> <span class="operator">=</span> <span class="function">sum</span> (<span class="function">mul</span> <span class="keyword">x</span> <span class="keyword">x</span>) <span class="keyword">in</span>
+  
+  <span class="comment">(* Get its gradient *)</span>
+  <span class="keyword">let</span> <span class="keyword">grad_f</span> <span class="operator">=</span> <span class="function">grad</span> <span class="keyword">f</span> <span class="keyword">in</span>
+  
+  <span class="comment">(* Test it *)</span>
+  <span class="keyword">let</span> <span class="keyword">x</span> <span class="operator">=</span> <span class="function">scalar</span> <span class="keyword">cpu</span> <span class="type">Float32</span> <span class="number">3.0</span> <span class="keyword">in</span>
+  <span class="keyword">let</span> <span class="keyword">g</span> <span class="operator">=</span> <span class="keyword">grad_f</span> <span class="keyword">x</span> <span class="keyword">in</span>
+  <span class="type">Printf</span>.<span class="function">printf</span> <span class="string">"f(3) = %.1f\n"</span> (<span class="function">unsafe_get</span> (<span class="keyword">f</span> <span class="keyword">x</span>) [<span class="operator">||</span>]);
+  <span class="type">Printf</span>.<span class="function">printf</span> <span class="string">"f'(3) = %.1f\n"</span> (<span class="function">unsafe_get</span> <span class="keyword">g</span> [<span class="operator">||</span>])
+    </pre>
+  </main>
+</body>
+</html>

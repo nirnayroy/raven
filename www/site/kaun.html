@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>kaun - Neural networks for OCaml | raven</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="main-content">
+    <nav class="kaun-nav nav-breadcrumb">
+      <a href="/">raven</a> / kaun <span class="color-red rune-symbol">ᚲ</span>
+      [ <a href="/docs/kaun/">docs</a> |
+      <a href="https://github.com/raven-ml/raven/tree/main/kaun">source</a> ]
+    </nav>
+
+    <div class="kaun-hero hero">
+      <h1>kaun <span style="font-size: 48px; margin-left: -20px; opacity: 0.6;" class="color-red">ᚲ</span></h1>
+      <p class="tagline">PyTorch's ease. Flax's modularity. OCaml's type safety.</p>
+    </div>
+
+    <hr>
+
+    <h2>why kaun?</h2>
+
+    <div class="feature-grid">
+      <div>
+        <h3 class="color-red">functional models</h3>
+        <p>Models are immutable records. Parameters are data, not hidden state. Everything composes.</p>
+      </div>
+      <div>
+        <h3 class="color-red">type-safe training</h3>
+        <p>Catch shape mismatches at compile time. Never debug another runtime dimension error.</p>
+      </div>
+      <div>
+        <h3 class="color-red">built on rune</h3>
+        <p>Automatic differentiation built in. Your loss function is just a function.</p>
+      </div>
+      <div>
+        <h3 class="color-red">pure optimizers</h3>
+        <p>Optimizers are functions, not stateful objects. Perfect for distributed training.</p>
+      </div>
+    </div>
+
+    <hr>
+
+    <h2>show me the code</h2>
+
+    <div class="code-compare">
+      <div>
+        <h4>PyTorch</h4>
+        <pre><span class="keyword">import</span> <span class="type">torch</span>
+<span class="keyword">import</span> <span class="type">torch.nn</span> <span class="keyword">as</span> <span class="type">nn</span>
+
+<span class="keyword">class</span> <span class="type">MLP</span>(<span class="type">nn.Module</span>):
+    <span class="keyword">def</span> <span class="function">__init__</span>(<span class="keyword">self</span>):
+        <span class="function">super</span>().<span class="function">__init__</span>()
+        <span class="keyword">self</span>.fc1 <span class="operator">=</span> <span class="type">nn</span>.<span class="function">Linear</span>(<span class="number">784</span>, <span class="number">128</span>)
+        <span class="keyword">self</span>.fc2 <span class="operator">=</span> <span class="type">nn</span>.<span class="function">Linear</span>(<span class="number">128</span>, <span class="number">10</span>)
+        
+    <span class="keyword">def</span> <span class="function">forward</span>(<span class="keyword">self</span>, <span class="keyword">x</span>):
+        <span class="keyword">x</span> <span class="operator">=</span> <span class="type">torch</span>.<span class="function">relu</span>(<span class="keyword">self</span>.fc1(<span class="keyword">x</span>))
+        <span class="keyword">return</span> <span class="keyword">self</span>.fc2(<span class="keyword">x</span>)
+
+<span class="keyword">model</span> <span class="operator">=</span> <span class="function">MLP</span>()
+<span class="keyword">optimizer</span> <span class="operator">=</span> <span class="type">torch.optim</span>.<span class="function">Adam</span>(<span class="keyword">model</span>.<span class="function">parameters</span>())</pre>
+      </div>
+      <div>
+        <h4>KAUN</h4>
+        <pre><span class="keyword">open</span> <span class="type">Kaun</span>
+
+<span class="comment">(* Model is a record *)</span>
+<span class="keyword">type</span> <span class="type">model</span> <span class="operator">=</span> {
+  fc1: <span class="type">Linear</span>.t;
+  fc2: <span class="type">Linear</span>.t;
+}
+
+<span class="comment">(* Forward is a function *)</span>
+<span class="keyword">let</span> <span class="keyword">forward</span> <span class="keyword">model</span> <span class="keyword">x</span> <span class="operator">=</span>
+  <span class="keyword">x</span>
+  <span class="operator">|></span> <span class="type">Linear</span>.<span class="function">forward</span> <span class="keyword">model</span>.fc1
+  <span class="operator">|></span> <span class="type">Activation</span>.<span class="function">relu</span>
+  <span class="operator">|></span> <span class="type">Linear</span>.<span class="function">forward</span> <span class="keyword">model</span>.fc2
+
+<span class="comment">(* Initialize *)</span>
+<span class="keyword">let</span> <span class="keyword">rng</span> <span class="operator">=</span> <span class="type">Rng</span>.<span class="function">make</span> <span class="number">42</span> <span class="keyword">in</span>
+<span class="keyword">let</span> <span class="keyword">model</span> <span class="operator">=</span> {
+  fc1 <span class="operator">=</span> <span class="type">Linear</span>.<span class="function">create</span> <span class="keyword">rng</span> <span class="operator">~</span><span class="keyword">input_dim</span><span class="operator">:</span><span class="number">784</span> <span class="operator">~</span><span class="keyword">output_dim</span><span class="operator">:</span><span class="number">128</span>;
+  fc2 <span class="operator">=</span> <span class="type">Linear</span>.<span class="function">create</span> <span class="keyword">rng</span> <span class="operator">~</span><span class="keyword">input_dim</span><span class="operator">:</span><span class="number">128</span> <span class="operator">~</span><span class="keyword">output_dim</span><span class="operator">:</span><span class="number">10</span>;
+}</pre>
+      </div>
+    </div>
+
+    <hr>
+
+    <h2>training loop</h2>
+
+    <pre><span class="comment">(* Loss function *)</span>
+<span class="keyword">let</span> <span class="keyword">loss_fn</span> <span class="keyword">model</span> <span class="keyword">x</span> <span class="keyword">y</span> <span class="operator">=</span>
+  <span class="keyword">let</span> <span class="keyword">logits</span> <span class="operator">=</span> <span class="keyword">forward</span> <span class="keyword">model</span> <span class="keyword">x</span> <span class="keyword">in</span>
+  <span class="type">Loss</span>.<span class="function">sigmoid_binary_cross_entropy</span> <span class="operator">~</span><span class="keyword">targets</span><span class="operator">:</span><span class="keyword">y</span> <span class="keyword">logits</span>
+
+<span class="comment">(* Get gradients using Rune *)</span>
+<span class="keyword">let</span> <span class="keyword">loss</span>, <span class="keyword">grads</span> <span class="operator">=</span> <span class="function">value_and_grad</span> <span class="keyword">loss_fn</span> <span class="keyword">model</span> <span class="keyword">x</span> <span class="keyword">y</span>
+
+<span class="comment">(* Update with optimizer *)</span>
+<span class="keyword">let</span> <span class="keyword">optimizer</span> <span class="operator">=</span> <span class="type">Optimizer</span>.<span class="function">adam</span> <span class="operator">~</span><span class="keyword">lr</span><span class="operator">:</span><span class="number">0.001</span> () <span class="keyword">in</span>
+<span class="keyword">let</span> <span class="keyword">model'</span>, <span class="keyword">opt_state'</span> <span class="operator">=</span> <span class="type">Optimizer</span>.<span class="function">update</span> <span class="keyword">optimizer</span> <span class="keyword">opt_state</span> <span class="keyword">model</span> <span class="keyword">grads</span>
+
+<span class="comment">(* Pure functional - old model unchanged *)</span></pre>
+
+    <hr>
+
+    <h2>what's implemented</h2>
+
+    <p>Kaun is in early development. Here's what works today:</p>
+
+    <div class="feature-grid">
+      <div>
+        <h3 class="color-red">layers</h3>
+        <ul style="list-style: none; padding: 0;">
+          <li>✓ Linear (dense/fully-connected)</li>
+          <li>✓ Parameter trees for composition</li>
+          <li>⏳ Conv2d, BatchNorm (coming for alpha)</li>
+          <li>⏳ Dropout, LayerNorm (coming for alpha)</li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="color-red">training</h3>
+        <ul style="list-style: none; padding: 0;">
+          <li>✓ SGD and Adam optimizers</li>
+          <li>✓ Binary cross-entropy loss</li>
+          <li>✓ Activation functions (relu, sigmoid, tanh)</li>
+          <li>⏳ More losses and metrics (coming for alpha)</li>
+        </ul>
+      </div>
+    </div>
+
+    <hr>
+
+    <h2>design principles</h2>
+
+    <p><b>Models are data.</b> No classes, no inheritance. A model is just a record containing parameters. This makes serialization, inspection, and manipulation trivial.</p>
+
+    <p><b>Training is functional.</b> Optimizers don't mutate state - they return new parameters. This enables techniques like checkpointing and distributed training without special frameworks.</p>
+
+    <p><b>Leverage Rune.</b> We don't reimplement autodiff or device management. Kaun is a thin layer of neural network abstractions over Rune's primitives.</p>
+
+    <hr>
+
+    <h2>get started</h2>
+
+    <p>Kaun isn't released yet. For now, check out the <a href="/docs/kaun/">documentation</a> to learn more.</p>
+
+    <p>When it's ready:</p>
+
+    <pre>
+<span class="comment"># Install</span>
+<span class="function">opam</span> install kaun
+
+<span class="comment"># Try it</span>
+<span class="keyword">open</span> <span class="type">Kaun</span>
+
+<span class="comment">(* XOR problem *)</span>
+<span class="keyword">let</span> <span class="keyword">x</span> <span class="operator">=</span> <span class="type">Tensor</span>.<span class="function">of_float_list</span> [<span class="operator">|</span><span class="number">4</span>; <span class="number">2</span><span class="operator">|</span>] [<span class="number">0.</span>; <span class="number">0.</span>; <span class="number">0.</span>; <span class="number">1.</span>; <span class="number">1.</span>; <span class="number">0.</span>; <span class="number">1.</span>; <span class="number">1.</span>]
+<span class="keyword">let</span> <span class="keyword">y</span> <span class="operator">=</span> <span class="type">Tensor</span>.<span class="function">of_float_list</span> [<span class="operator">|</span><span class="number">4</span>; <span class="number">1</span><span class="operator">|</span>] [<span class="number">0.</span>; <span class="number">1.</span>; <span class="number">1.</span>; <span class="number">0.</span>]
+
+<span class="comment">(* Train a model *)</span>
+<span class="keyword">let</span> <span class="keyword">model</span> <span class="operator">=</span> <span class="function">train_xor</span> <span class="keyword">x</span> <span class="keyword">y</span> <span class="operator">~</span><span class="keyword">epochs</span><span class="operator">:</span><span class="number">1000</span>
+    </pre>
+  </main>
+</body>
+</html>

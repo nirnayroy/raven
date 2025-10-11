@@ -1,0 +1,11 @@
+(library
+ (name nx)
+ (public_name nx)
+ (modules :standard \ prelude)
+ (libraries nx_core nx_c bigarray_ext))
+
+(mdx
+ (package nx)
+ (files nx.mli)
+ (preludes prelude.ml)
+ (libraries nx bigarray_ext))
