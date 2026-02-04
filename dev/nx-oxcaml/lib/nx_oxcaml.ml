@@ -78,7 +78,7 @@
       { dtype = Dtype.Float64; buffer = Float64 arr; view; context }
       (Symbolic_shape.of_ints shape)
   
-  let of_float32_multidim context (arr : float32 #array) (shape : int array) :
+  let of_float32_multidim context (arr : float32# array) (shape : int array) :
       (float, Dtype.float32_elt) t =
     let size = Array.length arr in
     let sym_shape = Symbolic_shape.of_ints [| size |] in
@@ -88,7 +88,7 @@
       { dtype = Dtype.Float32; buffer = Float32 arr; view; context }
       (Symbolic_shape.of_ints shape)
   
-  let of_float64 context (arr : float #array) : (float, Dtype.float64_elt) t =
+  let of_float64 context (arr : float# array) : (float, Dtype.float64_elt) t =
     let size = Array.length arr in
     let sym_shape = Symbolic_shape.of_ints [| size |] in
     let view = View.create sym_shape in
@@ -537,7 +537,7 @@
             (fun start_idx end_idx ->
               Op_max.max_int64 a_arr b_arr out_arr va vb vout start_idx end_idx)
         else Op_max.max_int64 a_arr b_arr out_arr va vb vout 0 vol
-    | _ -> Error.invalid ~op:"op_max" ~what:"unsupported dtype" ()
+    | _ -> Error.invalid ~op:"op_max" ~what:"unsupported dtype" () 
   
   let op_min (type a b) ~(out : (a, b) t) (a : (a, b) t) (b : (a, b) t) : unit =
     let parallel_threshold = 62500 in
