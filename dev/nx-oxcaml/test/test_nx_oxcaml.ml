@@ -393,7 +393,7 @@ let test_mod_int64 () =
   check_int64 "mod_int64[2]" #0L (geti64 d 2)
 (* 3000 mod 3 = 0 *)
 
-(*let test_max_float64 () =
+let test_max_float64 () =
   let ctx = Nx_oxcaml.create_context () in
   let a = Nx_oxcaml.of_float64 ctx [| #1.0; #2.0; #2.0 |] in
   let b = Nx_oxcaml.of_float64 ctx [| #0.0; #2.5; #1.5 |] in
@@ -435,7 +435,7 @@ let test_max_int32 () =
   let d = Nx_oxcaml.data_array out in
   check_int64 "max_int64[0]" #1500L (geti64 d 0);
   check_int64 "max_int64[1]" #2000L (geti64 d 1);
-  check_int64 "max_int64[2]" #3000L (geti64 d 2) *)
+  check_int64 "max_int64[2]" #3000L (geti64 d 2)
 
 let test_min_float64 () =
   let ctx = Nx_oxcaml.create_context () in
@@ -470,7 +470,7 @@ let test_min_int32 () =
   check_int32 "min_int32[1]" #2l (geti32 d 1);
   check_int32 "min_int32[2]" #2l (geti32 d 2)
 
-(* let test_min_int64 () =
+let test_min_int64 () =
   let ctx = Nx_oxcaml.create_context () in
   let a = Nx_oxcaml.of_int64 ctx [| #1000L; #2000L; #3000L |] in
   let b = Nx_oxcaml.of_int64 ctx [| #1500L; #1500L; #1000L |] in
@@ -479,7 +479,7 @@ let test_min_int32 () =
   let d = Nx_oxcaml.data_array out in
   check_int64 "min_int64[0]" #1000L (geti64 d 0);
   check_int64 "min_int64[1]" #1500L (geti64 d 1);
-  check_int64 "min_int64[2]" #1000L (geti64 d 2) *)
+  check_int64 "min_int64[2]" #1000L (geti64 d 2)
 
 let test_pow_float64 () =
   let ctx = Nx_oxcaml.create_context () in
@@ -1150,6 +1150,74 @@ let test_matmul_dot_product () =
 
   check_float64 "dot" ~eps:1e-9 #32. (get64 d 0)
 
+  let test_matmul_rectangular_f32 () =
+    let ctx = Nx_oxcaml.create_context () in
+    let a =
+      Nx_oxcaml.of_float32_multidim ctx
+        [|
+          #1.s; #2.s; #3.s;
+          #4.s; #5.s; #6.s;
+        |]
+        [|2; 3|]
+    in
+    let b =
+      Nx_oxcaml.of_float32_multidim ctx
+        [|
+          #7.s;  #8.s;  #9.s;  #10.s;
+          #11.s; #12.s; #13.s; #14.s;
+          #15.s; #16.s; #17.s; #18.s;
+        |]
+        [|3; 4|]
+    in
+    let out = Nx_ox.empty ctx Dtype.Float32 [|2; 4|] in
+    Nx_oxcaml.op_matmul ~out a b;
+    let d = Nx_oxcaml.data_array out in
+  (* row 0 *)
+  check_float32 "rect[0,0]" ~eps:1e-9 #74.s  (get32 d 0);
+  check_float32 "rect[0,1]" ~eps:1e-9 #80.s  (get32 d 1);
+  check_float32 "rect[0,2]" ~eps:1e-9 #86.s  (get32 d 2);
+  check_float32 "rect[0,3]" ~eps:1e-9 #92.s  (get32 d 3);
+
+  (* row 1 *)
+  check_float32 "rect[1,0]" ~eps:1e-9 #173.s (get32 d 4);
+  check_float32 "rect[1,1]" ~eps:1e-9 #188.s (get32 d 5);
+  check_float32 "rect[1,2]" ~eps:1e-9 #203.s (get32 d 6);
+  check_float32 "rect[1,3]" ~eps:1e-9 #218.s (get32 d 7)
+  
+  let test_matmul_batched_f32 () =
+  let ctx = Nx_oxcaml.create_context () in
+  let a =
+    Nx_oxcaml.of_float32_multidim ctx
+      [|
+        #1.s; #0.s; #0.s; #1.s;   (* batch 0: I *)
+        #2.s; #0.s; #0.s; #2.s;   (* batch 1: 2I *)
+      |]
+      [|2; 2; 2|]
+  in
+  let b =
+    Nx_oxcaml.of_float32_multidim ctx
+      [|
+        #3.s; #4.s; #5.s; #6.s;
+        #1.s; #1.s; #1.s; #1.s;
+      |]
+      [|2; 2; 2|]
+  in
+  let out = Nx_ox.empty ctx Dtype.Float32 [|2; 2; 2|] in
+  Nx_oxcaml.op_matmul ~out a b;
+  let d = Nx_oxcaml.data_array out in
+
+  (* batch 0 *)
+  check_float32 "bat0[0,0]" ~eps:1e-9 #3.s (get32 d 0);
+  check_float32 "bat0[0,1]" ~eps:1e-9 #4.s (get32 d 1);
+  check_float32 "bat0[1,0]" ~eps:1e-9 #5.s (get32 d 2);
+  check_float32 "bat0[1,1]" ~eps:1e-9 #6.s (get32 d 3);
+
+  (* batch 1 *)
+  check_float32 "bat1[0,0]" ~eps:1e-9 #2.s (get32 d 4);
+  check_float32 "bat1[0,1]" ~eps:1e-9 #2.s (get32 d 5);
+  check_float32 "bat1[1,0]" ~eps:1e-9 #2.s (get32 d 6);
+  check_float32 "bat1[1,1]" ~eps:1e-9 #2.s (get32 d 7)
+  
 let () =
   print_endline "Running Nx_oxcaml backend tests...";
   test_buffer_float64 ();
@@ -1186,12 +1254,12 @@ let () =
   test_mod_int32 ();
   test_min_float64 ();
   test_min_float32 ();
-  (* test_min_int64 (); *)
+  test_min_int64 ();
   test_min_int32 ();
-  (* test_max_float64 ();
-  test_max_float32 (); *)
-  (* test_max_int64 (); *)
-  (* test_max_int32 (); *)
+  test_max_float64 ();
+  test_max_float32 ();
+  test_max_int64 ();
+  test_max_int32 ();
   test_pow_float64 ();
   test_pow_float32 ();
   test_xor_int64 ();
@@ -1239,5 +1307,7 @@ let () =
   test_matmul_rectangular ();
   test_matmul_batched ();
   test_matmul_dot_product ();
+  test_matmul_rectangular_f32 ();
+  test_matmul_batched_f32 ();
   Printf.printf "\nResults: %d passed, %d failed\n" !passed !failed;
   if !failed > 0 then exit 1
