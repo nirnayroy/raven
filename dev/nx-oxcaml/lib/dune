@@ -16,6 +16,9 @@
 
 (library
  (name nx_oxcaml)
+  (foreign_stubs
+  (language c)
+  (names ba_stubs simd_stubs))
  (public_name nx-oxcaml)
  (implements nx_backend)
  (modules
