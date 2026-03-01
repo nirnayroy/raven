@@ -155,3 +155,50 @@ let parallel_for_reduce (pool @ portable) start end_ body reduce init =
     final_result := reduce !final_result results.(i)
   done;
   !final_result
+
+(* New primitive: enters a parallel region once, handler stays live for
+  the entire duration. f receives a lightweight dispatch function. *)
+let with_parallel_region pool f =
+  let open Effect.Deep in
+  try_with (fun () ->
+    let dispatch tasks =
+      Atomic.set pool.completed 0;
+      Mutex.lock pool.mutex;
+      Atomic.incr pool.generation;
+      for i = 0 to pool.num_workers - 1 do
+        pool.task_assignments.(i) <- Some tasks.(i)
+      done;
+      Condition.broadcast pool.work_available;
+      Mutex.unlock pool.mutex;
+      let main_task = tasks.(pool.num_workers) in
+      main_task.compute main_task.start_idx main_task.end_idx;
+      Effect.perform (WaitCompletion pool.num_workers)
+    in
+    f dispatch)
+  ()
+  { effc = (fun (type a) (e : a Effect.t) ->  (* ← qualify with Effect. *)
+      match e with
+      | WaitCompletion target ->
+          Some (fun (k : (a, unit) continuation) ->
+            let rec wait () =
+              if Atomic.get pool.completed >= target then continue k ()
+              else (Domain.cpu_relax (); wait ())
+            in
+            wait ())
+      | _ -> None) }
+
+
+let parallel_for_in_region pool dispatch start end_ compute_chunk =
+  let total_iterations = end_ - start + 1 in
+  if total_iterations <= 0 then ()
+  else
+    let total_domains = get_num_domains pool in
+    let chunk_size = total_iterations / total_domains in
+    let remainder = total_iterations mod total_domains in
+    let tasks =
+      Array.init total_domains (fun d ->
+          let start_idx = start + (d * chunk_size) + min d remainder in
+          let len = chunk_size + if d < remainder then 1 else 0 in
+          { start_idx; end_idx = start_idx + len; compute = compute_chunk })
+    in
+    dispatch tasks

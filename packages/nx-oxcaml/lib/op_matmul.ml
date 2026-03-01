@@ -255,40 +255,36 @@ module Gemm_f64 = struct
       ir := !ir + mr
     done
 
-  let gemm ~pool a_buf b_buf c_buf ~m ~n ~k ~a_off ~b_off ~c_off ~ldc () =
-    let lda = k and ldb = n in
-    let mc = mc_blk and nc = nc_blk and kc = kc_blk in
-    let rec jc_loop jc =
-      if jc >= n then ()
-      else
-        let nc' = min_int nc (n - jc) in
-        Parallel.parallel_for pool 0 (m - 1) (fun start_row end_row ->
-            let bp = Array.make_float64 (round_up nc' nr * kc) in
-            let ap = Array.make_float64 (round_up mc mr * kc) in
-            let tmp = Array.make_float64 (mr * nr) in
-            let rec pc_loop pc =
-              if pc >= k then ()
-              else
-                let kc' = min_int kc (k - pc) in
-                let first = pc = 0 in
-                pack_b b_buf ~b_off ~ldb ~pc ~jc ~kc:kc' ~nc:nc' bp;
-                let rec ic_loop ic =
-                  if ic >= end_row then ()
-                  else
-                    let mc' = min_int mc (end_row - ic) in
-                    pack_a a_buf ~a_off ~lda ~ic ~pc ~mc:mc' ~kc:kc' ap;
-                    macro_kernel ap bp c_buf
-                      ~c_off:(c_off + ic * ldc + jc)
-                      ~ldc ~mc:mc' ~nc:nc' ~kc:kc' ~first tmp;
-                    ic_loop (ic + mc')
-                in
-                ic_loop start_row;
-                pc_loop (pc + kc')
-            in
-            pc_loop 0);
-        jc_loop (jc + nc')
-    in
-    jc_loop 0
+    let gemm ~pool a_buf b_buf c_buf ~m ~n ~k ~a_off ~b_off ~c_off ~ldc () =
+      let lda = k and ldb = n in
+      let bp = Array.make_float64 (round_up nc_blk nr * kc_blk) in
+      Parallel.with_parallel_region pool (fun dispatch ->
+        let jc = ref 0 in
+        while !jc < n do
+          let nc' = min_int nc_blk (n - !jc) in
+          let pc = ref 0 in
+          while !pc < k do
+            let kc' = min_int kc_blk (k - !pc) in
+            let first = !pc = 0 in
+            pack_b b_buf ~b_off ~ldb ~pc:!pc ~jc:!jc ~kc:kc' ~nc:nc' bp;
+            let jc_snap = !jc and pc_snap = !pc in
+            Parallel.parallel_for_in_region pool dispatch 0 (m - 1)
+              (fun start_row end_row ->
+                let ap = Array.make_float64 (round_up mc_blk mr * kc_blk) in
+                let tmp = Array.make_float64 (mr * nr) in
+                let ic = ref start_row in
+                while !ic < end_row do
+                  let mc' = min_int mc_blk (end_row - !ic) in
+                  pack_a a_buf ~a_off ~lda ~ic:!ic ~pc:pc_snap ~mc:mc' ~kc:kc' ap;
+                  macro_kernel ap bp c_buf
+                    ~c_off:(c_off + !ic * ldc + jc_snap)
+                    ~ldc ~mc:mc' ~nc:nc' ~kc:kc' ~first tmp;
+                  ic := !ic + mc'
+                done);
+            pc := !pc + kc'
+          done;
+          jc := !jc + nc'
+        done)
 end
 
 let matmul_float64_slow a_buf b_buf c_buf va vb vout start_idx end_idx =
@@ -336,10 +332,8 @@ let matmul_float64_slow a_buf b_buf c_buf va vb vout start_idx end_idx =
         out_idx0.(nd_out - 2) <- i0;
         a_idx0.(nd_a - 2) <- i0;
     
-        if has_row1 then begin
-          out_idx1.(nd_out - 2) <- i0 + 1;
-          a_idx1.(nd_a - 2) <- i0 + 1
-        end;
+        out_idx1.(nd_out - 2) <- i0 + 1;
+        a_idx1.(nd_a - 2) <- i0 + 1;
     
         let j = ref 0 in
         while !j + 1 < n do
